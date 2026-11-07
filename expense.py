@@ -68,6 +68,37 @@ def list_expenses(category=None):
     return 0
 
 
+def total_expenses(category=None):
+    expenses = load_expenses()
+    if category:
+        category = category.lower().strip()
+        expenses = [e for e in expenses if e.get("category") == category]
+    total = sum(e["amount"] for e in expenses)
+    if category:
+        print(f"Total expenses in category '{category}': {total:.2f}")
+    else:
+        print(f"Total expenses: {total:.2f}")
+    return 0
+
+
+def summary():
+    expenses = load_expenses()
+    if not expenses:
+        print("No expenses found.")
+        return 0
+    totals = {}
+    for e in expenses:
+        cat = e.get("category", "uncategorized")
+        totals[cat] = totals.get(cat, 0.0) + e["amount"]
+    print(f"{'Category':<15} {'Total':>10}")
+    print("-" * 26)
+    for cat, amt in sorted(totals.items(), key=lambda kv: kv[1], reverse=True):
+        print(f"{cat:<15} {amt:>10.2f}")
+    print("-" * 26)
+    print(f"{'All':<15} {sum(totals.values()):>10.2f}")
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="Expense Tracker")
     subparsers = parser.add_subparsers(dest="command")
@@ -82,6 +113,13 @@ def build_parser():
     # List command
     list_parser = subparsers.add_parser("list", help="List all expenses")
     list_parser.add_argument("--category", type=str, help="Filter by category")
+
+    # Total command
+    total_parser = subparsers.add_parser("total", help="Show total expenses")
+    total_parser.add_argument("--category", type=str, help="Filter by category")
+
+    # Summary command
+    subparsers.add_parser("summary", help="Show summary of expenses by category")
 
     return parser
 
@@ -98,6 +136,10 @@ def main():
         return add_expense(args.amount, args.category, args.note, args.date)
     elif args.command == "list":
         return list_expenses(args.category)
+    elif args.command == "total":
+        return total_expenses(args.category)
+    elif args.command == "summary":
+        return summary()
     return 0
 
 
