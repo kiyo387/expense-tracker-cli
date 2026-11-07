@@ -33,16 +33,31 @@ def next_id(expenses):
 
 
 def add_expense(amount, category, note, date):
+    if amount <= 0:
+        print("Error: Amount must be a positive number.", file=sys.stderr)
+        return 1
+
+    category = category.lower().strip()
+    if not category:
+        print("Error: Category cannot be empty.", file=sys.stderr)
+        return 1
+
     if not date:
         date = datetime.date.today().isoformat()
+    else:
+        try:
+            date = datetime.date.fromisoformat(date).isoformat()
+        except ValueError:
+            print("Error: Date must be in YYYY-MM-DD format.", file=sys.stderr)
+            return 1
 
     expenses = load_expenses()
     expense_id = next_id(expenses)
     expense = {
         "id": expense_id,
         "amount": round(amount, 2),
-        "category": category.lower().strip(),
-        "note": note.strip(),
+        "category": category,
+        "note": (note or "").strip(),
         "date": date,
     }
     expenses.append(expense)
@@ -78,6 +93,17 @@ def total_expenses(category=None):
         print(f"Total expenses in category '{category}': {total:.2f}")
     else:
         print(f"Total expenses: {total:.2f}")
+    return 0
+
+
+def delete_expense(expense_id):
+    expenses = load_expenses()
+    remaining = [e for e in expenses if e.get("id") != expense_id]
+    if len(remaining) == len(expenses):
+        print(f"Error: Expense with ID {expense_id} not found.", file=sys.stderr)
+        return 1
+    save_expenses(remaining)
+    print(f"Deleted expense #{expense_id}.")
     return 0
 
 
@@ -118,6 +144,10 @@ def build_parser():
     total_parser = subparsers.add_parser("total", help="Show total expenses")
     total_parser.add_argument("--category", type=str, help="Filter by category")
 
+    # Delete command
+    delete_parser = subparsers.add_parser("delete", help="Delete an expense by ID")
+    delete_parser.add_argument("id", type=int, help="ID of the expense to delete")
+
     # Summary command
     subparsers.add_parser("summary", help="Show summary of expenses by category")
 
@@ -138,6 +168,8 @@ def main():
         return list_expenses(args.category)
     elif args.command == "total":
         return total_expenses(args.category)
+    elif args.command == "delete":
+        return delete_expense(args.id)
     elif args.command == "summary":
         return summary()
     return 0
