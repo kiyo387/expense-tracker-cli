@@ -1,4 +1,5 @@
 import argparse
+import csv
 import datetime
 import json
 import os
@@ -30,6 +31,16 @@ def save_expenses(expenses):
 
 def next_id(expenses):
     return max((e["id"] for e in expenses), default=0) + 1
+
+
+def filter_expenses(expenses, category=None, month=None):
+    if category:
+        category = category.lower().strip()
+        expenses = [e for e in expenses if e.get("category") == category]
+    if month:
+        month = month.strip()
+        expenses = [e for e in expenses if e.get("date", "").startswith(month)]
+    return expenses
 
 
 def add_expense(amount, category, note, date):
@@ -66,12 +77,8 @@ def add_expense(amount, category, note, date):
     return 0
 
 
-def list_expenses(category=None):
-    expenses = load_expenses()
-    if category:
-        category = category.lower().strip()
-        expenses = [e for e in expenses if e.get("category") == category]
-
+def list_expenses(category=None, month=None):
+    expenses = filter_expenses(load_expenses(), category, month)
     if not expenses:
         print("No expenses found.")
         return 0
@@ -83,16 +90,17 @@ def list_expenses(category=None):
     return 0
 
 
-def total_expenses(category=None):
-    expenses = load_expenses()
-    if category:
-        category = category.lower().strip()
-        expenses = [e for e in expenses if e.get("category") == category]
+def total_expenses(category=None, month=None):
+    expenses = filter_expenses(load_expenses(), category, month)
     total = sum(e["amount"] for e in expenses)
+    details = []
     if category:
-        print(f"Total expenses in category '{category}': {total:.2f}")
-    else:
-        print(f"Total expenses: {total:.2f}")
+        details.append(f"category '{category}'")
+    if month:
+        details.append(f"month '{month}'")
+
+    label = f" in {', '.join(details)}" if details else ""
+    print(f"Total expenses{label}: {total:.2f}")
     return 0
 
 
@@ -125,31 +133,55 @@ def summary():
     return 0
 
 
+def export_csv(output_path="expenses.csv"):
+    expenses = load_expenses()
+    if not expenses:
+        print("No expenses to export.")
+        return 0
+    try:
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "date", "amount", "category", "note"])
+            writer.writeheader()
+            for e in sorted(expenses, key=lambda x: (x["date"], x["id"])):
+                writer.writerow(e)
+        print(f"Exported {len(expenses)} expense(s) to '{output_path}'.")
+        return 0
+    except OSError as err:
+        print(f"Error exporting to CSV: {err}", file=sys.stderr)
+        return 1
+
+
 def build_parser():
-    parser = argparse.ArgumentParser(description="Expense Tracker")
+    parser = argparse.ArgumentParser(description="Expense Tracker CLI")
     subparsers = parser.add_subparsers(dest="command")
 
     # Add command
     add_parser = subparsers.add_parser("add", help="Add a new expense")
-    add_parser.add_argument("amount", type=float, help="Amount of the expense")
+    add_parser.add_argument("amount", type=float, help="Amount of the expense (positive number)")
     add_parser.add_argument("category", type=str, help="Category of the expense")
     add_parser.add_argument("note", type=str, nargs="?", default="", help="Optional note for the expense")
-    add_parser.add_argument("--date", type=str, help="Date of the expense in YYYY-MM-DD format (default: today)")
+    add_parser.add_argument("--date", type=str, help="Date in YYYY-MM-DD format (default: today)")
 
     # List command
     list_parser = subparsers.add_parser("list", help="List all expenses")
     list_parser.add_argument("--category", type=str, help="Filter by category")
+    list_parser.add_argument("--month", type=str, help="Filter by month (YYYY-MM)")
 
     # Total command
     total_parser = subparsers.add_parser("total", help="Show total expenses")
     total_parser.add_argument("--category", type=str, help="Filter by category")
+    total_parser.add_argument("--month", type=str, help="Filter by month (YYYY-MM)")
 
     # Delete command
     delete_parser = subparsers.add_parser("delete", help="Delete an expense by ID")
     delete_parser.add_argument("id", type=int, help="ID of the expense to delete")
 
     # Summary command
-    subparsers.add_parser("summary", help="Show summary of expenses by category")
+    subparsers.add_parser("summary", help="Show summary of expenses grouped by category")
+
+    # Export command
+    export_parser = subparsers.add_parser("export", help="Export all expenses to a CSV file")
+    export_parser.add_argument("-o", "--output", default="expenses.csv", help="Output file path (default: expenses.csv)")
 
     return parser
 
@@ -165,13 +197,15 @@ def main():
     if args.command == "add":
         return add_expense(args.amount, args.category, args.note, args.date)
     elif args.command == "list":
-        return list_expenses(args.category)
+        return list_expenses(args.category, args.month)
     elif args.command == "total":
-        return total_expenses(args.category)
+        return total_expenses(args.category, args.month)
     elif args.command == "delete":
         return delete_expense(args.id)
     elif args.command == "summary":
         return summary()
+    elif args.command == "export":
+        return export_csv(args.output)
     return 0
 
 
