@@ -1,3 +1,4 @@
 expenses.json
 __pycache__/
 *.csv
+.vscode/
