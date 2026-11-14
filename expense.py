@@ -48,6 +48,10 @@ def filter_expenses(expenses, category=None, month=None):
         expenses = [e for e in expenses if e.get("category") == category]
     if month:
         month = month.strip()
+        try:
+            datetime.datetime.strptime(month, "%Y-%m")
+        except ValueError:
+            raise ValueError("Month must be in YYYY-MM format (e.g. 2026-11).")
         expenses = [e for e in expenses if e.get("date", "").startswith(month)]
     return expenses
 

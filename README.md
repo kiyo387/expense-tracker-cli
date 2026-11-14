@@ -8,9 +8,10 @@ A lightweight, zero-dependency command-line expense tracker written in Python. I
 
 - **Add Expenses**: Track amount, category, optional note, and custom or default date (today).
 - **Collision-free IDs**: Auto-increments IDs based on the highest existing ID (`max(ids) + 1`), avoiding ID collisions after deletions.
-- **Filtering**: Filter expenses by category (case-insensitive) or by month (`YYYY-MM`).
-- **Totals & Summary**: View spending totals by category or inspect an overall category-wise breakdown.
+- **Filtering**: Filter expenses by category (case-insensitive) or by month (`--month YYYY-MM`).
+- **Totals & Summary**: View spending totals by category or month, or inspect an overall category-wise breakdown.
 - **CSV Export**: Export all recorded expenses to a `.csv` file for external spreadsheet analysis.
+- **Robust Exception Handling**: Gracefully handles missing files, invalid JSON, invalid dates, and non-existent IDs.
 - **Zero External Dependencies**: Implemented entirely with Python's standard library (`argparse`, `json`, `datetime`, `csv`, `os`, `sys`).
 
 ---
@@ -57,10 +58,10 @@ python expense.py list
 # Filter by category
 python expense.py list --category food
 
-# Filter by month (YYYY-MM)
+# Filter by month using the --month flag (YYYY-MM)
 python expense.py list --month 2026-11
 
-# Combine filters
+# Combine category and month filters
 python expense.py list --category food --month 2026-11
 ```
 
@@ -74,14 +75,22 @@ ID    Amount     Category        Date         Note
 
 ### 3. Total Spending
 ```bash
-# Total for all expenses
+# Total across all recorded expenses
 python expense.py total
 
 # Total for a specific category
 python expense.py total --category food
 
-# Total for a specific month
+# Total for a specific month using the --month flag (YYYY-MM)
 python expense.py total --month 2026-11
+
+# Total combined by category and month
+python expense.py total --category food --month 2026-11
+```
+
+*Output sample:*
+```
+Total expenses in month '2026-11': 82.50
 ```
 
 ### 4. Summary Breakdown
