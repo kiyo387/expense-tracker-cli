@@ -10,14 +10,20 @@ DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "expenses.j
 
 def load_expenses():
     """Return the list of expenses. Return [] if the file is missing or empty."""
-    if not os.path.exists(DATA_FILE) or os.path.getsize(DATA_FILE) == 0:
+    if not os.path.exists(DATA_FILE):
         return []
     try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
+        if os.path.getsize(DATA_FILE) == 0:
+            return []
+        with open(DATA_FILE, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        print("Warning: could not read expenses.json, starting with an empty list.", file=sys.stderr)
+    except json.JSONDecodeError:
+        print("Error: Could not decode expenses.json, starting with an empty list.", file=sys.stderr)
         return []
+    except OSError as err:
+        print(f"Error reading expenses.json: {err}", file=sys.stderr)
+        return []
+
     if not isinstance(data, list):
         print("Warning: expenses.json has an unexpected format, starting empty.", file=sys.stderr)
         return []
@@ -25,8 +31,11 @@ def load_expenses():
 
 
 def save_expenses(expenses):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(expenses, f, indent=4)
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(expenses, f, indent=4)
+    except OSError as err:
+        print(f"Error saving to expenses.json: {err}", file=sys.stderr)
 
 
 def next_id(expenses):
@@ -45,13 +54,11 @@ def filter_expenses(expenses, category=None, month=None):
 
 def add_expense(amount, category, note, date):
     if amount <= 0:
-        print("Error: Amount must be a positive number.", file=sys.stderr)
-        return 1
+        raise ValueError("Amount must be a positive number.")
 
     category = category.lower().strip()
     if not category:
-        print("Error: Category cannot be empty.", file=sys.stderr)
-        return 1
+        raise ValueError("Category cannot be empty.")
 
     if not date:
         date = datetime.date.today().isoformat()
@@ -59,8 +66,7 @@ def add_expense(amount, category, note, date):
         try:
             date = datetime.date.fromisoformat(date).isoformat()
         except ValueError:
-            print("Error: Date must be in YYYY-MM-DD format.", file=sys.stderr)
-            return 1
+            raise ValueError("Date must be in YYYY-MM-DD format.")
 
     expenses = load_expenses()
     expense_id = next_id(expenses)
@@ -108,8 +114,7 @@ def delete_expense(expense_id):
     expenses = load_expenses()
     remaining = [e for e in expenses if e.get("id") != expense_id]
     if len(remaining) == len(expenses):
-        print(f"Error: Expense with ID {expense_id} not found.", file=sys.stderr)
-        return 1
+        raise ValueError(f"Expense with ID {expense_id} not found.")
     save_expenses(remaining)
     print(f"Deleted expense #{expense_id}.")
     return 0
@@ -147,7 +152,7 @@ def export_csv(output_path="expenses.csv"):
         print(f"Exported {len(expenses)} expense(s) to '{output_path}'.")
         return 0
     except OSError as err:
-        print(f"Error exporting to CSV: {err}", file=sys.stderr)
+        print(f"Error: Could not export to {output_path}: {err}", file=sys.stderr)
         return 1
 
 
@@ -194,18 +199,22 @@ def main():
         parser.print_help()
         return 0
 
-    if args.command == "add":
-        return add_expense(args.amount, args.category, args.note, args.date)
-    elif args.command == "list":
-        return list_expenses(args.category, args.month)
-    elif args.command == "total":
-        return total_expenses(args.category, args.month)
-    elif args.command == "delete":
-        return delete_expense(args.id)
-    elif args.command == "summary":
-        return summary()
-    elif args.command == "export":
-        return export_csv(args.output)
+    try:
+        if args.command == "add":
+            return add_expense(args.amount, args.category, args.note, args.date)
+        elif args.command == "list":
+            return list_expenses(args.category, args.month)
+        elif args.command == "total":
+            return total_expenses(args.category, args.month)
+        elif args.command == "delete":
+            return delete_expense(args.id)
+        elif args.command == "summary":
+            return summary()
+        elif args.command == "export":
+            return export_csv(args.output)
+    except ValueError as err:
+        print(f"Error: {err}", file=sys.stderr)
+        return 1
     return 0
 
 
