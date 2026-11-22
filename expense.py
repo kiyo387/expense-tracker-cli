@@ -180,8 +180,8 @@ def summary():
     return 0
 
 
-def export_csv(output_path="expenses.csv"):
-    expenses = load_expenses()
+def export_csv(output_path="expenses.csv", month=None):
+    expenses = filter_expenses(load_expenses(), month=month)
     if not expenses:
         print("No expenses to export.")
         return 0
@@ -235,8 +235,9 @@ def build_parser():
     subparsers.add_parser("summary", help="Show summary of expenses grouped by category")
 
     # Export command
-    export_parser = subparsers.add_parser("export", help="Export all expenses to a CSV file")
-    export_parser.add_argument("-o", "--output", default="expenses.csv", help="Output file path (default: expenses.csv)")
+    export_parser = subparsers.add_parser("export", help="Export expenses to a CSV file")
+    export_parser.add_argument("file", nargs="?", default="expenses.csv", help="Output CSV file path (default: expenses.csv)")
+    export_parser.add_argument("--month", type=str, help="Filter by month (YYYY-MM)")
 
     return parser
 
@@ -263,7 +264,7 @@ def main():
         elif args.command == "summary":
             return summary()
         elif args.command == "export":
-            return export_csv(args.output)
+            return export_csv(args.file, args.month)
     except ValueError as err:
         print(f"Error: {err}", file=sys.stderr)
         return 1

@@ -11,7 +11,7 @@ A lightweight, zero-dependency command-line expense tracker written in Python. I
 - **Collision-free IDs**: Auto-increments IDs based on the highest existing ID (`max(ids) + 1`), avoiding ID collisions after deletions.
 - **Filtering**: Filter expenses by category (case-insensitive) or by month (`--month YYYY-MM`).
 - **Totals & Summary**: View spending totals by category or month, or inspect an overall category-wise breakdown.
-- **CSV Export**: Export all recorded expenses to a `.csv` file for external spreadsheet analysis.
+- **CSV Export**: Export expenses to a `.csv` file with optional month filtering (`--month YYYY-MM`).
 - **Robust Exception Handling**: Gracefully handles missing files, invalid JSON, invalid dates, and non-existent IDs.
 - **Zero External Dependencies**: Implemented entirely with Python's standard library (`argparse`, `json`, `datetime`, `csv`, `os`, `sys`).
 
@@ -112,13 +112,16 @@ All                 122.50
 ```
 
 ### 5. Export to CSV
-Export your expenses into a CSV file for spreadsheets like Excel or Google Sheets:
+Export expenses into a CSV file with an optional month filter:
 ```bash
-# Export to default expenses.csv
-python expense.py export
+# Export all expenses to a specified CSV file
+python expense.py export expenses.csv
 
-# Specify custom file destination
-python expense.py export --output november_expenses.csv
+# Export expenses for a specific month (YYYY-MM)
+python expense.py export november_expenses.csv --month 2026-11
+
+# Default destination is expenses.csv if omitted
+python expense.py export
 ```
 
 ### 6. Edit an Expense
