@@ -175,3 +175,23 @@ Expenses are stored locally in an `expenses.json` file created in the project di
 ```
 
 `expenses.json` and any exported `.csv` files are ignored by git via `.gitignore` so your personal financial data stays private.
+
+---
+
+## Running Tests
+
+Unit tests are written using `pytest`.
+
+1. **Install pytest:**
+   ```bash
+   pip install pytest
+   ```
+
+2. **Run tests:**
+   ```bash
+   pytest
+   ```
+   or
+   ```bash
+   python -m pytest
+   ```
