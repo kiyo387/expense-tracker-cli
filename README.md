@@ -7,6 +7,7 @@ A lightweight, zero-dependency command-line expense tracker written in Python. I
 ## Features
 
 - **Add Expenses**: Track amount, category, optional note, and custom or default date (today).
+- **Edit Expenses**: Update amount, category, note, or date of any expense by ID.
 - **Collision-free IDs**: Auto-increments IDs based on the highest existing ID (`max(ids) + 1`), avoiding ID collisions after deletions.
 - **Filtering**: Filter expenses by category (case-insensitive) or by month (`--month YYYY-MM`).
 - **Totals & Summary**: View spending totals by category or month, or inspect an overall category-wise breakdown.
@@ -120,7 +121,26 @@ python expense.py export
 python expense.py export --output november_expenses.csv
 ```
 
-### 6. Delete an Expense
+### 6. Edit an Expense
+Update any field of an existing expense by its unique ID. All flags are optional and only specified fields are changed:
+```bash
+# Update amount only
+python expense.py edit 1 --amount 30.00
+
+# Update category and note
+python expense.py edit 1 --category groceries --note "Weekly supermarket"
+
+# Update date (YYYY-MM-DD)
+python expense.py edit 1 --date 2026-11-15
+```
+
+If the specified ID is not found:
+```bash
+python expense.py edit 99 --amount 10.00
+# Output: No expense with id 99
+```
+
+### 7. Delete an Expense
 Delete an expense by its unique ID:
 ```bash
 python expense.py delete 1

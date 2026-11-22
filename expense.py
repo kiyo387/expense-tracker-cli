@@ -42,10 +42,38 @@ def next_id(expenses):
     return max((e["id"] for e in expenses), default=0) + 1
 
 
+def validate_amount(amount):
+    if amount <= 0:
+        raise ValueError("Amount must be a positive number.")
+    return round(float(amount), 2)
+
+
+def validate_category(category):
+    cat = (category or "").lower().strip()
+    if not cat:
+        raise ValueError("Category cannot be empty.")
+    return cat
+
+
+def validate_date(date_str):
+    if not date_str:
+        return datetime.date.today().isoformat()
+    try:
+        return datetime.date.fromisoformat(date_str).isoformat()
+    except ValueError:
+        raise ValueError("Date must be in YYYY-MM-DD format.")
+
+
+def filter_by_category(expenses, category):
+    if not category:
+        return expenses
+    cat = category.lower().strip()
+    return [e for e in expenses if e.get("category", "").lower().strip() == cat]
+
+
 def filter_expenses(expenses, category=None, month=None):
     if category:
-        category = category.lower().strip()
-        expenses = [e for e in expenses if e.get("category") == category]
+        expenses = filter_by_category(expenses, category)
     if month:
         month = month.strip()
         try:
@@ -57,26 +85,15 @@ def filter_expenses(expenses, category=None, month=None):
 
 
 def add_expense(amount, category, note, date):
-    if amount <= 0:
-        raise ValueError("Amount must be a positive number.")
-
-    category = category.lower().strip()
-    if not category:
-        raise ValueError("Category cannot be empty.")
-
-    if not date:
-        date = datetime.date.today().isoformat()
-    else:
-        try:
-            date = datetime.date.fromisoformat(date).isoformat()
-        except ValueError:
-            raise ValueError("Date must be in YYYY-MM-DD format.")
+    amount = validate_amount(amount)
+    category = validate_category(category)
+    date = validate_date(date)
 
     expenses = load_expenses()
     expense_id = next_id(expenses)
     expense = {
         "id": expense_id,
-        "amount": round(amount, 2),
+        "amount": amount,
         "category": category,
         "note": (note or "").strip(),
         "date": date,
@@ -84,6 +101,27 @@ def add_expense(amount, category, note, date):
     expenses.append(expense)
     save_expenses(expenses)
     print(f"Added expense #{expense['id']}: {expense['amount']:.2f} in category '{expense['category']}' on {expense['date']}.")
+    return 0
+
+
+def edit_expense(expense_id, amount=None, category=None, note=None, date=None):
+    expenses = load_expenses()
+    target = next((e for e in expenses if e.get("id") == expense_id), None)
+    if not target:
+        print(f"No expense with id {expense_id}")
+        return 1
+
+    if amount is not None:
+        target["amount"] = validate_amount(amount)
+    if category is not None:
+        target["category"] = validate_category(category)
+    if note is not None:
+        target["note"] = note.strip()
+    if date is not None:
+        target["date"] = validate_date(date)
+
+    save_expenses(expenses)
+    print(f"Updated expense #{expense_id}.")
     return 0
 
 
@@ -181,6 +219,14 @@ def build_parser():
     total_parser.add_argument("--category", type=str, help="Filter by category")
     total_parser.add_argument("--month", type=str, help="Filter by month (YYYY-MM)")
 
+    # Edit command
+    edit_parser = subparsers.add_parser("edit", help="Edit an existing expense by ID")
+    edit_parser.add_argument("id", type=int, help="ID of the expense to edit")
+    edit_parser.add_argument("--amount", type=float, default=None, help="New amount of the expense")
+    edit_parser.add_argument("--category", type=str, default=None, help="New category of the expense")
+    edit_parser.add_argument("--note", type=str, default=None, help="New note for the expense")
+    edit_parser.add_argument("--date", type=str, default=None, help="New date in YYYY-MM-DD format")
+
     # Delete command
     delete_parser = subparsers.add_parser("delete", help="Delete an expense by ID")
     delete_parser.add_argument("id", type=int, help="ID of the expense to delete")
@@ -210,6 +256,8 @@ def main():
             return list_expenses(args.category, args.month)
         elif args.command == "total":
             return total_expenses(args.category, args.month)
+        elif args.command == "edit":
+            return edit_expense(args.id, args.amount, args.category, args.note, args.date)
         elif args.command == "delete":
             return delete_expense(args.id)
         elif args.command == "summary":
